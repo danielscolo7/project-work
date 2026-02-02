@@ -1,100 +1,123 @@
-# runTest.py - test e confronto soluzioni per gold thief
+# runTest.py - test e confronto soluzioni per Gold Thief
+
 import sys
 import os
-import importlib
-import pandas as pd
 from pathlib import Path
+import pandas as pd
+import networkx as nx
 
-# Aggiunge la directory principale al path
-module_path = os.path.abspath(os.path.join('..'))
-if module_path not in sys.path:
-    sys.path.append(module_path)
+# --- aggiunge la directory principale al path ---
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.append(str(ROOT_DIR))
 
 from Problem import Problem
-from s346508 import solution  # il nostro solver
-# Se vuoi usare funzioni utili come compute_cost, possiamo inserirle qui se necessario
+from s346508 import goldThief   # funzione principale
+
 
 def compute_cost(problem, path):
-    """Calcola il costo di un percorso secondo alpha, beta e peso dell'oro."""
+    """
+    Calcola il costo totale di un percorso secondo il modello del prof
+    """
     alpha, beta = problem.alpha, problem.beta
     graph = problem.graph
 
     total_cost = 0.0
-    w = 0.0
-    for i in range(len(path)-1):
-        current_city, gold_to_load = path[i]
-        next_city = path[i+1][0]
-        w += gold_to_load
+    carried_gold = 0.0
+
+    for i in range(len(path) - 1):
+        current_city, gold_loaded = path[i]
+        next_city = path[i + 1][0]
+
+        carried_gold += gold_loaded
+
         try:
-            sp = nx.shortest_path(graph, current_city, next_city, weight='dist')
-            d = nx.path_weight(graph, sp, weight='dist')
-        except:
-            return float('inf')
-        total_cost += d + (d * alpha * w) ** beta
+            sp = nx.shortest_path(graph, current_city, next_city, weight="dist")
+            d = nx.path_weight(graph, sp, weight="dist")
+        except nx.NetworkXNoPath:
+            return float("inf")
+
+        total_cost += d + (d * alpha * carried_gold) ** beta
+
         if next_city == 0:
-            w = 0.0
+            carried_gold = 0.0
+
     return total_cost
 
-def get_baseline_path(problem):
-    """Percorsi di baseline: visita ogni città singolarmente."""
-    total_path = []
+
+def baseline_solution(problem):
+    """
+    Baseline semplice:
+    un viaggio per ogni città (0 -> città -> 0)
+    """
     graph = problem.graph
-    all_paths = nx.single_source_dijkstra_path(graph, source=0, weight='dist')
-    for dest, path in all_paths.items():
-        if dest == 0:
+    path = []
+
+    for city in graph.nodes:
+        if city == 0:
             continue
-        gold_dest = graph.nodes[dest]['gold']
-        total_path.extend([(0, 0), (dest, gold_dest), (0, 0)])
-    return total_path
+        gold = graph.nodes[city]["gold"]
+        path.extend([(0, 0), (city, gold), (0, 0)])
+
+    return path
+
 
 def run_tests():
-    n_cities = [10, 50, 100]
+    sizes = [10, 50, 100]
+    densities = [0.2, 0.5, 1.0]
     alpha_values = [0.0, 1.0, 2.0, 4.0]
-    beta_values = [0.5, 1, 2, 4]
-    density_values = [0.2, 0.5, 1.0]
+    beta_values = [0.5, 1.0, 2.0, 4.0]
     seed = 42
 
-    configs = []
-    for size in n_cities:
-        for density in density_values:
+    results = []
+
+    for size in sizes:
+        for density in densities:
             for alpha in alpha_values:
                 for beta in beta_values:
-                    configs.append((size, density, alpha, beta))
 
-    results = []
-    for size, density, alpha, beta in configs:
-        print(f"\nTesting: Size={size}, Density={density}, Alpha={alpha}, Beta={beta}")
-        test_problem = Problem(size, density=density, alpha=alpha, beta=beta, seed=seed)
+                    print(f"\nTest: n={size}, density={density}, alpha={alpha}, beta={beta}")
 
-        baseline_path = get_baseline_path(test_problem)
-        baseline_cost = compute_cost(test_problem, baseline_path)
+                    problem = Problem(
+                        size,
+                        density=density,
+                        alpha=alpha,
+                        beta=beta,
+                        seed=seed
+                    )
 
-        my_path = solution(test_problem)
-        my_cost = compute_cost(test_problem, my_path)
+                    base_path = baseline_solution(problem)
+                    base_cost = compute_cost(problem, base_path)
 
-        improvement = (baseline_cost - my_cost) / baseline_cost * 100
-        print(f"  Baseline: {baseline_cost:.2f}, My: {my_cost:.2f}, Improvement: {improvement:.2f}%")
+                    my_path = goldThief(problem)
+                    my_cost = compute_cost(problem, my_path)
 
-        results.append({
-            'Size': size,
-            'Density': density,
-            'Alpha': alpha,
-            'Beta': beta,
-            'Baseline': f"{baseline_cost:.2f}",
-            'Solution': f"{my_cost:.2f}",
-            'Improvement%': f"{improvement:.2f}%"
-        })
+                    improvement = 100 * (base_cost - my_cost) / base_cost
+
+                    print(f"  Baseline: {base_cost:.2f}")
+                    print(f"  goldThief: {my_cost:.2f}")
+                    print(f"  Improvement: {improvement:.2f}%")
+
+                    results.append({
+                        "Cities": size,
+                        "Density": density,
+                        "Alpha": alpha,
+                        "Beta": beta,
+                        "Baseline": round(base_cost, 2),
+                        "goldThief": round(my_cost, 2),
+                        "Improvement_%": round(improvement, 2)
+                    })
 
     df = pd.DataFrame(results)
-    print("\n" + "="*80)
-    print(df.to_string(index=False))
-    print("="*80)
 
-    # Salva i risultati in CSV dentro src/
-    output_file = Path(__file__).parent / 'results.csv'
-    df.to_csv(output_file, index=False)
-    print(f"\nRisultati salvati in {output_file}")
+    print("\n" + "=" * 90)
+    print(df.to_string(index=False))
+    print("=" * 90)
+
+    output_path = Path(__file__).parent / "results.csv"
+    df.to_csv(output_path, index=False)
+    print(f"\nRisultati salvati in: {output_path}")
+
 
 if __name__ == "__main__":
-    import networkx as nx
     run_tests()
