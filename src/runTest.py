@@ -74,9 +74,6 @@ def run_tests(verbose=True):
             for alpha in alpha_values:
                 for beta in beta_values:
 
-                    if verbose:
-                        print(f"\nTest: n={size}, density={density}, alpha={alpha}, beta={beta}")
-
                     problem = Problem(
                         size,
                         density=density,
@@ -85,18 +82,9 @@ def run_tests(verbose=True):
                         seed=seed
                     )
 
-                    base_path = baseline_solution(problem)
-                    base_cost = compute_cost(problem, base_path)
-
-                    my_path = goldThief(problem)
-                    my_cost = compute_cost(problem, my_path)
-
+                    base_cost = compute_cost(problem, baseline_solution(problem))
+                    my_cost = compute_cost(problem, goldThief(problem))
                     improvement = 100 * (base_cost - my_cost) / base_cost
-
-                    if verbose:
-                        print(f"  Baseline: {base_cost:.2f}")
-                        print(f"  goldThief: {my_cost:.2f}")
-                        print(f"  Improvement: {improvement:.2f}%")
 
                     results.append({
                         "Cities": size,
@@ -108,18 +96,22 @@ def run_tests(verbose=True):
                         "Improvement_%": round(improvement, 2)
                     })
 
-    # Salva risultati in CSV dentro src/
-    df = pd.DataFrame(results)
-    output_path = Path(__file__).parent / "results.csv"
-    df.to_csv(output_path, index=False)
-    print(f"\nRisultati salvati in: {output_path}")
+                    if verbose:
+                        print(f"\nTest: n={size}, density={density}, alpha={alpha}, beta={beta}")
+                        print(f"  Baseline: {base_cost:.2f}")
+                        print(f"  goldThief: {my_cost:.2f}")
+                        print(f"  Improvement: {improvement:.2f}%")
 
-    # Stampa tabella finale
+    # --- Tabella in memoria ---
+    df_results = pd.DataFrame(results)
+
     if verbose:
         print("\n" + "=" * 90)
-        print(df.to_string(index=False))
+        print(df_results.to_string(index=False))
         print("=" * 90)
+
+    return df_results  # restituisce la tabella senza salvare file
 
 
 if __name__ == "__main__":
-    run_tests()
+    results = run_tests()
