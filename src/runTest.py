@@ -1,18 +1,17 @@
-# runTest.py - test e confronto soluzioni per Gold Thief
-
+# src/runTest.py - test e confronto soluzioni per Gold Thief
 import sys
-import os
 from pathlib import Path
 import pandas as pd
 import networkx as nx
+import time
 
-# --- aggiunge la directory principale al path ---
+# --- Aggiunge la directory principale (parent di src) al path ---
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.append(str(ROOT_DIR))
 
 from Problem import Problem
-from s346508 import goldThief   # funzione principale
+from s346508 import goldThief  # la nostra funzione principale
 
 
 def compute_cost(problem, path):
@@ -47,8 +46,7 @@ def compute_cost(problem, path):
 
 def baseline_solution(problem):
     """
-    Baseline semplice:
-    un viaggio per ogni città (0 -> città -> 0)
+    Baseline semplice: visita ogni città singolarmente (0 -> città -> 0)
     """
     graph = problem.graph
     path = []
@@ -62,8 +60,8 @@ def baseline_solution(problem):
     return path
 
 
-def run_tests():
-    sizes = [10, 50, 100]
+def run_tests(verbose=True):
+    sizes = [10, 50, 100]  # piccolo test rapido
     densities = [0.2, 0.5, 1.0]
     alpha_values = [0.0, 1.0, 2.0, 4.0]
     beta_values = [0.5, 1.0, 2.0, 4.0]
@@ -76,7 +74,8 @@ def run_tests():
             for alpha in alpha_values:
                 for beta in beta_values:
 
-                    print(f"\nTest: n={size}, density={density}, alpha={alpha}, beta={beta}")
+                    if verbose:
+                        print(f"\nTest: n={size}, density={density}, alpha={alpha}, beta={beta}")
 
                     problem = Problem(
                         size,
@@ -94,9 +93,10 @@ def run_tests():
 
                     improvement = 100 * (base_cost - my_cost) / base_cost
 
-                    print(f"  Baseline: {base_cost:.2f}")
-                    print(f"  goldThief: {my_cost:.2f}")
-                    print(f"  Improvement: {improvement:.2f}%")
+                    if verbose:
+                        print(f"  Baseline: {base_cost:.2f}")
+                        print(f"  goldThief: {my_cost:.2f}")
+                        print(f"  Improvement: {improvement:.2f}%")
 
                     results.append({
                         "Cities": size,
@@ -108,15 +108,17 @@ def run_tests():
                         "Improvement_%": round(improvement, 2)
                     })
 
+    # Salva risultati in CSV dentro src/
     df = pd.DataFrame(results)
-
-    print("\n" + "=" * 90)
-    print(df.to_string(index=False))
-    print("=" * 90)
-
     output_path = Path(__file__).parent / "results.csv"
     df.to_csv(output_path, index=False)
     print(f"\nRisultati salvati in: {output_path}")
+
+    # Stampa tabella finale
+    if verbose:
+        print("\n" + "=" * 90)
+        print(df.to_string(index=False))
+        print("=" * 90)
 
 
 if __name__ == "__main__":
