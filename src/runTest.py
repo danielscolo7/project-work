@@ -105,7 +105,12 @@ def run_tests(verbose=True):
     # --- Tabella in memoria ---
     df_results = pd.DataFrame(results)
 
+    # --- Salva risultati in Excel ---
+    output_path = Path(__file__).parent / "results.xlsx"
+    df_results.to_excel(output_path, index=False)
     if verbose:
+        print(f"\nRisultati salvati in: {output_path}")
+
         print("\n" + "=" * 90)
         print(df_results.to_string(index=False))
         print("=" * 90)
