@@ -5,7 +5,7 @@ import pandas as pd
 import networkx as nx
 import time
 
-# --- Aggiunge la directory principale (parent di src) al path ---
+# --- Aggiunge la directory principale (parent di src) al path --
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.append(str(ROOT_DIR))
