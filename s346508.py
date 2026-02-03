@@ -1,5 +1,5 @@
 # s346508.py - Gold Thief Solver
-# Strategia greedy con merge adattivo e randomizzazione controllata
+# Heuristica greedy incrementale con merge adattivo e rumore controllato
 
 import networkx as nx
 import numpy as np
@@ -9,11 +9,11 @@ import time
 
 def goldThief(problem, seed: int = 42):
     """
-    Soluzione greedy ottimizzata:
-    - parte da percorsi singoli
-    - unisce solo se il merge riduce sicuramente il costo
-    - limita la lunghezza dei merge in base a beta
-    - usa randomizzazione sui vicini per evitare soluzioni rigide
+    Heuristica incrementale:
+    - costruisce inizialmente viaggi elementari
+    - fonde solo catene con beneficio netto misurabile
+    - limita la crescita delle catene in funzione di beta
+    - introduce rumore controllato per evitare stagnazione
     """
     random.seed(seed)
     graph = problem.graph
@@ -28,7 +28,7 @@ def goldThief(problem, seed: int = 42):
     idx_to_city = {i: c for i, c in enumerate(cities)}
     depot_idx = n_targets
 
-    # --- Matrice delle distanze (shortest paths) ---
+    # --- Matrice delle distanze minime ---
     dist = np.full((n_targets + 1, n_targets + 1), np.inf, dtype=np.float32)
     mapping = city_to_idx.copy()
     mapping[0] = depot_idx
@@ -45,7 +45,7 @@ def goldThief(problem, seed: int = 42):
     gold_dict = nx.get_node_attributes(graph, "gold")
     gold_values = np.array([gold_dict[idx_to_city[i]] for i in range(n_targets)])
 
-    # --- Funzione costo ---
+    # --- Funzione costo di una catena ---
     def compute_route_cost(route):
         total_cost = 0.0
         carried = 0.0
@@ -103,7 +103,7 @@ def goldThief(problem, seed: int = 42):
                 if route_b[0] != candidate:
                     continue
 
-                # limite lunghezza merge (dipende da beta)
+                # Limite dinamico della lunghezza delle catene
                 max_len = 2 + int(beta // 1.5)
                 if beta < 2:
                     max_len += 1
@@ -116,7 +116,10 @@ def goldThief(problem, seed: int = 42):
                 old_cost = route_costs[rid_a] + route_costs[rid_b]
                 gain = old_cost - new_cost
 
-                if gain > best_gain and gain > 1e-5 * old_cost:
+                # Soglia adattiva con rumore controllato
+                threshold = 1e-5 * old_cost * (1 + 0.2 * random.random())
+
+                if gain > best_gain and gain > threshold:
                     best_gain = gain
                     best_choice = (rid_a, rid_b, merged, new_cost)
 
@@ -132,10 +135,10 @@ def goldThief(problem, seed: int = 42):
             del route_costs[rb]
             improved = True
 
-    # --- Costruzione percorso finale ---
+    # --- Costruzione percorso finale (ordine per costo decrescente) ---
     final_path = [(0, 0)]
-    for route in routes.values():
-        for idx in route:
+    for rid in sorted(routes, key=lambda r: route_costs[r], reverse=True):
+        for idx in routes[rid]:
             city = idx_to_city[idx]
             final_path.append((city, gold_dict[city]))
         final_path.append((0, 0))
