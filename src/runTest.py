@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 import networkx as nx
 
-# --- Aggiunge la directory principale (parent di src) al path ---
+# Aggiunge la directory principale (parent di src) al path 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.append(str(ROOT_DIR))
@@ -61,7 +61,7 @@ def baseline_solution(problem):
 
 
 def run_tests(verbose=True):
-    # --- Test combinatori dettagliati (piccolo-medio-grande) ---
+    # Test combinatori (piccolo-medio-grande) 
     sizes = [10, 50, 100, 200]  # Aggiunto 200
     densities = [0.2, 0.5, 1.0]
     alpha_values = [0.0, 1.0, 2.0, 4.0]
@@ -103,10 +103,10 @@ def run_tests(verbose=True):
                         print(f"  goldThief: {my_cost:.2f}")
                         print(f"  Improvement: {improvement:.2f}%")
 
-    # --- Tabella combinatoria ---
+    # Tabella combinatoria 
     df_results = pd.DataFrame(results)
 
-    # --- Salva risultati in Excel ---
+    # Salva risultati in Excel 
     output_path = Path(__file__).parent / "results.xlsx"
     df_results.to_excel(output_path, index=False)
     if verbose:

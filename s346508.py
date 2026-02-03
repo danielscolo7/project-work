@@ -1,5 +1,5 @@
 # s346508.py - Gold Thief Solver
-# Heuristica greedy incrementale con merge adattivo e rumore controllato
+# Heuristic greedy incremental con merge adattivo e rumore controllato
 
 import networkx as nx
 import numpy as np
@@ -10,17 +10,17 @@ import time
 def goldThief(problem, seed: int = 42):
     """
     Heuristica incrementale:
-    - costruisce inizialmente viaggi elementari
-    - fonde solo catene con beneficio netto misurabile
+    - inizialmente viaggi elementari
+    - fonde solo catene con beneficio 
     - limita la crescita delle catene in funzione di beta
-    - introduce rumore controllato per evitare stagnazione
+    - introduce rumore controllato 
     """
     random.seed(seed)
     graph = problem.graph
     alpha, beta = problem.alpha, problem.beta
     start_time = time.time()
 
-    # --- Preparazione nodi ---
+    # Preparazione nodi 
     cities = [n for n in graph.nodes if n != 0]
     n_targets = len(cities)
 
@@ -28,7 +28,7 @@ def goldThief(problem, seed: int = 42):
     idx_to_city = {i: c for i, c in enumerate(cities)}
     depot_idx = n_targets
 
-    # --- Matrice delle distanze minime ---
+    # Matrice delle distanze minime
     dist = np.full((n_targets + 1, n_targets + 1), np.inf, dtype=np.float32)
     mapping = city_to_idx.copy()
     mapping[0] = depot_idx
@@ -41,11 +41,11 @@ def goldThief(problem, seed: int = 42):
             if v in mapping:
                 dist[ui, mapping[v]] = d
 
-    # --- Oro ---
+    # Oro 
     gold_dict = nx.get_node_attributes(graph, "gold")
     gold_values = np.array([gold_dict[idx_to_city[i]] for i in range(n_targets)])
 
-    # --- Funzione costo di una catena ---
+    # Funzione costo di una catena
     def compute_route_cost(route):
         total_cost = 0.0
         carried = 0.0
@@ -61,19 +61,19 @@ def goldThief(problem, seed: int = 42):
         total_cost += d_back + (d_back * alpha * carried) ** beta
         return total_cost
 
-    # --- Inizializzazione: una città per viaggio ---
+    # Inizializzazione: una città per viaggio 
     routes = {i: [i] for i in range(n_targets)}
     route_costs = {i: compute_route_cost([i]) for i in range(n_targets)}
     city_owner = {i: i for i in range(n_targets)}
 
-    # --- Vicini candidati (randomizzati) ---
+    # Vicini candidati (randomizzati) 
     neighbors = {}
     for i in range(n_targets):
         close = np.argsort(dist[i, :n_targets])[1:12]
         neighbors[i] = list(close)
         random.shuffle(neighbors[i])
 
-    # --- Ciclo di miglioramento ---
+    # Ciclo di miglioramento
     MAX_ITER = 60
     TIME_LIMIT = 25
     improved = True
@@ -135,7 +135,7 @@ def goldThief(problem, seed: int = 42):
             del route_costs[rb]
             improved = True
 
-    # --- Costruzione percorso finale (ordine per costo decrescente) ---
+    # Costruzione percorso finale (ordine per costo decrescente) 
     final_path = [(0, 0)]
     for rid in sorted(routes, key=lambda r: route_costs[r], reverse=True):
         for idx in routes[rid]:
