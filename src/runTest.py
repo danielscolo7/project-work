@@ -61,7 +61,8 @@ def baseline_solution(problem):
 
 
 def run_tests(verbose=True):
-    sizes = [10, 50, 100]
+    # --- Test combinatori dettagliati (piccolo-medio-grande) ---
+    sizes = [10, 50, 100, 200]  # Aggiunto 200
     densities = [0.2, 0.5, 1.0]
     alpha_values = [0.0, 1.0, 2.0, 4.0]
     beta_values = [0.5, 1.0, 2.0, 4.0]
@@ -102,7 +103,7 @@ def run_tests(verbose=True):
                         print(f"  goldThief: {my_cost:.2f}")
                         print(f"  Improvement: {improvement:.2f}%")
 
-    # --- Tabella in memoria ---
+    # --- Tabella combinatoria ---
     df_results = pd.DataFrame(results)
 
     # --- Salva risultati in Excel ---
@@ -110,7 +111,6 @@ def run_tests(verbose=True):
     df_results.to_excel(output_path, index=False)
     if verbose:
         print(f"\nRisultati salvati in: {output_path}")
-
         print("\n" + "=" * 90)
         print(df_results.to_string(index=False))
         print("=" * 90)
@@ -120,3 +120,4 @@ def run_tests(verbose=True):
 
 if __name__ == "__main__":
     results = run_tests()
+
