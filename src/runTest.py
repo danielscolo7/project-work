@@ -1,17 +1,17 @@
 # src/runTest.py - test e confronto soluzioni per Gold Thief
+
 import sys
 from pathlib import Path
 import pandas as pd
 import networkx as nx
-import time
 
-# --- Aggiunge la directory principale (parent di src) al path --
+# --- Aggiunge la directory principale (parent di src) al path ---
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.append(str(ROOT_DIR))
 
 from Problem import Problem
-from s346508 import goldThief  # la nostra funzione principale
+from s346508 import goldThief
 
 
 def compute_cost(problem, path):
@@ -61,7 +61,7 @@ def baseline_solution(problem):
 
 
 def run_tests(verbose=True):
-    sizes = [10, 50, 100]  # piccolo test rapido
+    sizes = [10, 50, 100]
     densities = [0.2, 0.5, 1.0]
     alpha_values = [0.0, 1.0, 2.0, 4.0]
     beta_values = [0.5, 1.0, 2.0, 4.0]
@@ -110,7 +110,7 @@ def run_tests(verbose=True):
         print(df_results.to_string(index=False))
         print("=" * 90)
 
-    return df_results  # restituisce la tabella senza salvare file
+    return df_results
 
 
 if __name__ == "__main__":
