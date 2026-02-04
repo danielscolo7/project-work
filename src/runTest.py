@@ -11,7 +11,8 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.append(str(ROOT_DIR))
 
 from Problem import Problem
-from s346508 import goldThief
+from s346508 import solution  
+
 
 
 def compute_cost(problem, path):
@@ -84,7 +85,7 @@ def run_tests(verbose=True):
                     )
 
                     base_cost = compute_cost(problem, baseline_solution(problem))
-                    my_cost = compute_cost(problem, goldThief(problem))
+                    my_cost = compute_cost(problem, solution(problem))
                     improvement = 100 * (base_cost - my_cost) / base_cost
 
                     results.append({
