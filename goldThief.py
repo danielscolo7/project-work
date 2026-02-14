@@ -140,4 +140,20 @@ def goldThief(problem, alpha, beta, max_iter, time_limit, neighbor_count, seed):
             final_path.append((city, gold_dict[city]))
         final_path.append((0, 0))
 
+        
+    # Funzione di verifica path finale
+    def is_valid(path, graph):
+        """
+        Controlla che ogni step del percorso esista nel grafo
+        Restituisce True se il percorso è valido, False altrimenti
+        """
+        for (c1, gold1), (c2, gold2) in zip(path, path[1:]):
+            if not nx.has_path(graph, c1, c2):
+                return False
+        return True
+
+    # Verifica di validità del percorso finale
+    if not is_valid(final_path, graph):
+        print("Attenzione: il percorso finale NON è valido per il grafo!")
+
     return final_path
