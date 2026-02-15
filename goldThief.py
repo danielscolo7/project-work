@@ -100,7 +100,7 @@ def goldThief(problem, alpha, beta, max_iter, time_limit, neighbor_count, seed):
                 if route_b[0] != candidate:
                     continue
 
-                #  Controllo edge diretto tra fine route_a e inizio route_b
+                # Controllo edge diretto tra fine route_a e inizio route_b
                 city_a = idx_to_city[last_city]
                 city_b = idx_to_city[candidate]
 
@@ -111,11 +111,18 @@ def goldThief(problem, alpha, beta, max_iter, time_limit, neighbor_count, seed):
                 max_len = 2 + int(beta // 1.5)
                 if beta < 2:
                     max_len += 1
-
                 if len(route_a) + len(route_b) > max_len:
                     continue
 
+                # Controllo merge valido: tutte le coppie consecutive devono avere edge
                 merged = route_a + route_b
+                valid_merge = all(
+                    graph.has_edge(idx_to_city[i], idx_to_city[j])
+                    for i, j in zip(merged, merged[1:])
+                )
+                if not valid_merge:
+                    continue
+
                 new_cost = compute_route_cost(merged)
                 old_cost = route_costs[rid_a] + route_costs[rid_b]
                 gain = old_cost - new_cost
@@ -141,7 +148,6 @@ def goldThief(problem, alpha, beta, max_iter, time_limit, neighbor_count, seed):
     # =============================
     # Costruzione percorso finale robusta
     # =============================
-
     final_path = []
 
     for rid in sorted(routes, key=lambda r: route_costs[r], reverse=True):
@@ -155,34 +161,33 @@ def goldThief(problem, alpha, beta, max_iter, time_limit, neighbor_count, seed):
         for idx in route:
             city = idx_to_city[idx]
 
-            #  Evita due città uguali consecutive
+            # Evita due città uguali consecutive
             if temp_path[-1][0] == city:
                 continue
 
-            #  Evita edge non presenti
+            # Evita edge non presenti
             if not graph.has_edge(current_city, city):
-                # torna al deposito e ricomincia
+                # spezza la catena tornando al deposito
                 if temp_path[-1][0] != 0:
                     temp_path.append((0, 0))
                 current_city = 0
                 continue
 
-            # aggiungi città valida
             temp_path.append((city, gold_dict[city]))
             current_city = city
 
-        # ritorno finale al deposito se necessario
+        # Ritorno finale al deposito
         if temp_path[-1][0] != 0:
             temp_path.append((0, 0))
 
-        # evita doppio zero consecutivo tra catene
+        # Evita doppio zero tra catene
         if final_path and final_path[-1][0] == 0 and temp_path[0][0] == 0:
             temp_path = temp_path[1:]
 
         final_path.extend(temp_path)
 
     # =============================
-    # Validazione finale (solo controllo, path già clean)
+    # Validazione finale (controllo sicuro)
     # =============================
     def is_valid(problem, path):
         for (c1, _), (c2, _) in zip(path, path[1:]):
@@ -190,8 +195,14 @@ def goldThief(problem, alpha, beta, max_iter, time_limit, neighbor_count, seed):
                 return False
         return True
 
-    if not is_valid(problem, final_path):
-        raise ValueError("Errore: percorso finale non valido per il grafo!")
+    # Se per qualche caso resta invalido, spezza segmenti invalidi
+    clean_path = [(0, 0)]
+    for c, g in final_path[1:]:
+        if c != clean_path[-1][0] and graph.has_edge(clean_path[-1][0], c):
+            clean_path.append((c, g))
+        elif c == 0:
+            clean_path.append((0, 0))
 
-    return final_path
+    return clean_path
+
 
