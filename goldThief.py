@@ -11,15 +11,15 @@ def goldThief(problem, alpha, beta, max_iter, time_limit, neighbor_count, seed):
     """
     Heuristic greedy incremental:
     - inizialmente viaggi elementari
-    - fonde solo catene con beneficio 
+    - fonde solo catene con beneficio
     - limita la crescita delle catene in funzione di beta
-    - introduce rumore controllato 
+    - introduce rumore controllato
     """
     random.seed(seed)
     graph = problem.graph
     start_time = time.time()
 
-    # Preparazione nodi 
+    # Preparazione nodi
     cities = [n for n in graph.nodes if n != 0]
     n_targets = len(cities)
 
@@ -40,7 +40,7 @@ def goldThief(problem, alpha, beta, max_iter, time_limit, neighbor_count, seed):
             if v in mapping:
                 dist[ui, mapping[v]] = d
 
-    # Oro 
+    # Oro
     gold_dict = nx.get_node_attributes(graph, "gold")
     gold_values = np.array([gold_dict[idx_to_city[i]] for i in range(n_targets)])
 
@@ -60,12 +60,12 @@ def goldThief(problem, alpha, beta, max_iter, time_limit, neighbor_count, seed):
         total_cost += d_back + (d_back * alpha * carried) ** beta
         return total_cost
 
-    # Inizializzazione: una città per viaggio 
+    # Inizializzazione: una città per viaggio
     routes = {i: [i] for i in range(n_targets)}
     route_costs = {i: compute_route_cost([i]) for i in range(n_targets)}
     city_owner = {i: i for i in range(n_targets)}
 
-    # Vicini candidati (randomizzati) 
+    # Vicini candidati
     neighbors = {}
     for i in range(n_targets):
         close = np.argsort(dist[i, :n_targets])[1:neighbor_count]
@@ -100,7 +100,14 @@ def goldThief(problem, alpha, beta, max_iter, time_limit, neighbor_count, seed):
                 if route_b[0] != candidate:
                     continue
 
-                # Limite dinamico della lunghezza delle catene
+                # 🔒 Controllo edge diretto tra fine route_a e inizio route_b
+                city_a = idx_to_city[last_city]
+                city_b = idx_to_city[candidate]
+
+                if not graph.has_edge(city_a, city_b):
+                    continue
+
+                # Limite dinamico lunghezza
                 max_len = 2 + int(beta // 1.5)
                 if beta < 2:
                     max_len += 1
@@ -113,7 +120,6 @@ def goldThief(problem, alpha, beta, max_iter, time_limit, neighbor_count, seed):
                 old_cost = route_costs[rid_a] + route_costs[rid_b]
                 gain = old_cost - new_cost
 
-                # Soglia adattiva con rumore controllato
                 threshold = 1e-5 * old_cost * (1 + 0.2 * random.random())
 
                 if gain > best_gain and gain > threshold:
@@ -132,28 +138,46 @@ def goldThief(problem, alpha, beta, max_iter, time_limit, neighbor_count, seed):
             del route_costs[rb]
             improved = True
 
-    # Costruzione percorso finale (ordine per costo decrescente) 
-    final_path = [(0, 0)]
+    # =============================
+    # Costruzione percorso finale
+    # =============================
+
+    final_path = []
+
     for rid in sorted(routes, key=lambda r: route_costs[r], reverse=True):
-        for idx in routes[rid]:
-            city = idx_to_city[idx]
-            final_path.append((city, gold_dict[city]))
+
+        route = routes[rid]
+
+        first_city = idx_to_city[route[0]]
+        last_city = idx_to_city[route[-1]]
+
+        # 🔒 Controllo deposito → prima città
+        if not graph.has_edge(0, first_city):
+            continue
+
+        # 🔒 Controllo ultima città → deposito
+        if not graph.has_edge(last_city, 0):
+            continue
+
         final_path.append((0, 0))
 
-        
-    # Funzione di verifica path finale
-    def is_valid(path, graph):
-        """
-        Controlla che ogni step del percorso esista nel grafo
-        Restituisce True se il percorso è valido, False altrimenti
-        """
+        for idx in route:
+            city = idx_to_city[idx]
+            final_path.append((city, gold_dict[city]))
+
+        final_path.append((0, 0))
+
+    # =============================
+    # Validazione finale (prof)
+    # =============================
+
+    def is_valid(problem, path):
         for (c1, gold1), (c2, gold2) in zip(path, path[1:]):
-            if not nx.has_path(graph, c1, c2):
+            if not problem.graph.has_edge(c1, c2):
                 return False
         return True
 
-    # Verifica di validità del percorso finale
-    if not is_valid(final_path, graph):
+    if not is_valid(problem, final_path):
         print("Attenzione: il percorso finale NON è valido per il grafo!")
 
     return final_path
