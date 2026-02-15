@@ -100,7 +100,7 @@ def goldThief(problem, alpha, beta, max_iter, time_limit, neighbor_count, seed):
                 if route_b[0] != candidate:
                     continue
 
-                # 🔒 Controllo edge diretto tra fine route_a e inizio route_b
+                #  Controllo edge diretto tra fine route_a e inizio route_b
                 city_a = idx_to_city[last_city]
                 city_b = idx_to_city[candidate]
 
@@ -139,45 +139,59 @@ def goldThief(problem, alpha, beta, max_iter, time_limit, neighbor_count, seed):
             improved = True
 
     # =============================
-    # Costruzione percorso finale
+    # Costruzione percorso finale robusta
     # =============================
 
     final_path = []
 
     for rid in sorted(routes, key=lambda r: route_costs[r], reverse=True):
-
         route = routes[rid]
-
-        first_city = idx_to_city[route[0]]
-        last_city = idx_to_city[route[-1]]
-
-        # 🔒 Controllo deposito → prima città
-        if not graph.has_edge(0, first_city):
+        if not route:
             continue
 
-        # 🔒 Controllo ultima città → deposito
-        if not graph.has_edge(last_city, 0):
-            continue
-
-        final_path.append((0, 0))
+        current_city = 0
+        temp_path = [(0, 0)]  # partenza dal deposito
 
         for idx in route:
             city = idx_to_city[idx]
-            final_path.append((city, gold_dict[city]))
 
-        final_path.append((0, 0))
+            #  Evita due città uguali consecutive
+            if temp_path[-1][0] == city:
+                continue
+
+            #  Evita edge non presenti
+            if not graph.has_edge(current_city, city):
+                # torna al deposito e ricomincia
+                if temp_path[-1][0] != 0:
+                    temp_path.append((0, 0))
+                current_city = 0
+                continue
+
+            # aggiungi città valida
+            temp_path.append((city, gold_dict[city]))
+            current_city = city
+
+        # ritorno finale al deposito se necessario
+        if temp_path[-1][0] != 0:
+            temp_path.append((0, 0))
+
+        # evita doppio zero consecutivo tra catene
+        if final_path and final_path[-1][0] == 0 and temp_path[0][0] == 0:
+            temp_path = temp_path[1:]
+
+        final_path.extend(temp_path)
 
     # =============================
-    # Validazione finale (prof)
+    # Validazione finale (solo controllo, path già clean)
     # =============================
-
     def is_valid(problem, path):
-        for (c1, gold1), (c2, gold2) in zip(path, path[1:]):
+        for (c1, _), (c2, _) in zip(path, path[1:]):
             if not problem.graph.has_edge(c1, c2):
                 return False
         return True
 
     if not is_valid(problem, final_path):
-        print("Attenzione: il percorso finale NON è valido per il grafo!")
+        raise ValueError("Errore: percorso finale non valido per il grafo!")
 
     return final_path
+
